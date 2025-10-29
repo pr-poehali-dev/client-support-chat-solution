@@ -93,12 +93,7 @@ const roleLabels = {
 
 const menuItems = [
   { id: 'chats', label: 'Чаты с клиентами', icon: 'MessageSquare' as const, roles: ['operator', 'okk', 'admin'] },
-  { id: 'knowledge', label: 'База знаний', icon: 'BookOpen' as const, roles: ['operator', 'okk', 'admin'] },
-  { id: 'monitoring', label: 'Мониторинг операторов', icon: 'Monitor' as const, roles: ['okk', 'admin'] },
-  { id: 'quality', label: 'Портал QC', icon: 'Star' as const, roles: ['okk', 'admin'] },
   { id: 'employees', label: 'Управление сотрудниками', icon: 'Users' as const, roles: ['admin'] },
-  { id: 'statuses', label: 'Управление статусами', icon: 'Settings' as const, roles: ['admin'] },
-  { id: 'analytics', label: 'Аналитика и отчёты', icon: 'BarChart3' as const, roles: ['okk', 'admin'] },
 ];
 
 const Dashboard = () => {
@@ -111,6 +106,7 @@ const Dashboard = () => {
   const [activeSection, setActiveSection] = useState('chats');
   const [messageText, setMessageText] = useState('');
   const [userStatus, setUserStatus] = useState<UserStatus>('online');
+  const [chatFilter, setChatFilter] = useState<'all' | 'waiting' | 'active' | 'closed'>('all');
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -211,15 +207,50 @@ const Dashboard = () => {
             <aside className="w-80 border-r border-border flex flex-col bg-card">
               <div className="p-4 border-b border-border">
                 <h2 className="font-bold text-lg mb-3">Чаты с клиентами</h2>
-                <div className="relative">
+                <div className="relative mb-3">
                   <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                   <Input placeholder="Поиск по чатам..." className="pl-10" />
+                </div>
+                
+                <div className="flex gap-1">
+                  <Button
+                    variant={chatFilter === 'all' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="flex-1 text-xs"
+                    onClick={() => setChatFilter('all')}
+                  >
+                    Все
+                  </Button>
+                  <Button
+                    variant={chatFilter === 'waiting' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="flex-1 text-xs"
+                    onClick={() => setChatFilter('waiting')}
+                  >
+                    Ожидают
+                  </Button>
+                  <Button
+                    variant={chatFilter === 'active' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="flex-1 text-xs"
+                    onClick={() => setChatFilter('active')}
+                  >
+                    Активные
+                  </Button>
+                  <Button
+                    variant={chatFilter === 'closed' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="flex-1 text-xs"
+                    onClick={() => setChatFilter('closed')}
+                  >
+                    Закрытые
+                  </Button>
                 </div>
               </div>
 
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
-                  {chats.map((chat) => (
+                  {chats.filter(chat => chatFilter === 'all' || chat.status === chatFilter).map((chat) => (
                     <Card
                       key={chat.id}
                       className={`p-3 cursor-pointer transition-all hover-scale ${

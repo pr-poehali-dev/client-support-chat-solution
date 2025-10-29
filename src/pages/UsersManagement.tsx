@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ const statusConfig = {
 };
 
 const UsersManagement = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -100,6 +102,10 @@ const UsersManagement = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
+          <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-2">
+            <Icon name="ArrowLeft" className="mr-2" size={16} />
+            Назад к дашборду
+          </Button>
           <h1 className="text-3xl font-bold">Управление сотрудниками</h1>
           <p className="text-muted-foreground mt-1">Создание и редактирование учётных записей</p>
         </div>

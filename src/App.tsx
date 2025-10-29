@@ -5,8 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
+import ClientChat from "./pages/ClientChat";
+import StaffLogin from "./pages/StaffLogin";
+import Dashboard from "./pages/Dashboard";
 import UsersManagement from "./pages/UsersManagement";
 import NotFound from "./pages/NotFound";
 import { authService, User } from "./lib/auth";
@@ -33,11 +34,11 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode;
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/staff" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -50,8 +51,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/" element={<ClientChat />} />
+          <Route path="/staff" element={<StaffLogin />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><UsersManagement /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>

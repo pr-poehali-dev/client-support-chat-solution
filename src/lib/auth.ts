@@ -81,6 +81,32 @@ export const authService = {
   getSessionToken(): string | null {
     return localStorage.getItem('session_token');
   },
+
+  async updateStatus(status: 'online' | 'jira' | 'break' | 'offline'): Promise<void> {
+    const token = localStorage.getItem('session_token');
+    if (!token) {
+      throw new Error('No session token');
+    }
+
+    const response = await fetch(AUTH_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Session-Token': token,
+      },
+      body: JSON.stringify({ action: 'update_status', status }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update status');
+    }
+
+    const user = this.getCurrentUser();
+    if (user) {
+      user.status = status;
+      localStorage.setItem('user', JSON.stringify(user));
+    }
+  },
 };
 
 export const usersService = {

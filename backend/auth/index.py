@@ -43,6 +43,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return handle_logout(event, conn)
             elif action == 'verify':
                 return handle_verify(event, conn)
+            elif action == 'update_status':
+                return handle_update_status(event, conn)
         
         elif method == 'GET':
             return handle_get_current_user(event, conn)
@@ -158,6 +160,58 @@ def handle_logout(event: Dict[str, Any], conn) -> Dict[str, Any]:
         'statusCode': 200,
         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
         'body': json.dumps({'success': True}),
+        'isBase64Encoded': False
+    }
+
+
+def handle_update_status(event: Dict[str, Any], conn) -> Dict[str, Any]:
+    headers = event.get('headers', {})
+    session_token = headers.get('x-session-token') or headers.get('X-Session-Token')
+    
+    if not session_token:
+        return {
+            'statusCode': 401,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Unauthorized'}),
+            'isBase64Encoded': False
+        }
+    
+    body_data = json.loads(event.get('body', '{}'))
+    new_status: str = body_data.get('status', '')
+    
+    if not new_status or new_status not in ['online', 'jira', 'break', 'offline']:
+        return {
+            'statusCode': 400,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Invalid status'}),
+            'isBase64Encoded': False
+        }
+    
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT user_id FROM sessions WHERE session_token = %s AND expires_at > CURRENT_TIMESTAMP",
+        (session_token,)
+    )
+    session = cursor.fetchone()
+    
+    if not session:
+        return {
+            'statusCode': 401,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Session expired'}),
+            'isBase64Encoded': False
+        }
+    
+    cursor.execute(
+        "UPDATE users SET status = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+        (new_status, session['user_id'])
+    )
+    conn.commit()
+    
+    return {
+        'statusCode': 200,
+        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps({'success': True, 'status': new_status}),
         'isBase64Encoded': False
     }
 

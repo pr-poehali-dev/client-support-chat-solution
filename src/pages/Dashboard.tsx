@@ -93,7 +93,12 @@ const roleLabels = {
 
 const menuItems = [
   { id: 'chats', label: 'Чаты с клиентами', icon: 'MessageSquare' as const, roles: ['operator', 'okk', 'admin'] },
+  { id: 'knowledge', label: 'База знаний', icon: 'BookOpen' as const, roles: ['operator', 'okk', 'admin'] },
+  { id: 'monitoring', label: 'Мониторинг операторов', icon: 'Monitor' as const, roles: ['okk', 'admin'] },
+  { id: 'quality', label: 'Портал QC', icon: 'Star' as const, roles: ['okk', 'admin'] },
   { id: 'employees', label: 'Управление сотрудниками', icon: 'Users' as const, roles: ['admin'] },
+  { id: 'statuses', label: 'Управление статусами', icon: 'Settings' as const, roles: ['admin'] },
+  { id: 'analytics', label: 'Аналитика и отчёты', icon: 'BarChart3' as const, roles: ['okk', 'admin'] },
 ];
 
 const Dashboard = () => {
@@ -184,10 +189,23 @@ const Dashboard = () => {
     navigate('/users');
   };
 
-  const handleStatusChange = (newStatus: UserStatus) => {
-    setUserStatus(newStatus);
-    if (currentUser) {
-      setCurrentUser({ ...currentUser, status: newStatus });
+  const handleStatusChange = async (newStatus: UserStatus) => {
+    try {
+      await authService.updateStatus(newStatus);
+      setUserStatus(newStatus);
+      if (currentUser) {
+        setCurrentUser({ ...currentUser, status: newStatus });
+      }
+      toast({
+        title: 'Статус обновлен',
+        description: `Ваш статус изменен на "${statusConfig[newStatus].label}"`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось обновить статус',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -429,40 +447,260 @@ const Dashboard = () => {
       case 'knowledge':
         return (
           <div className="flex-1 p-6">
-            <h2 className="text-2xl font-bold mb-4">База знаний сотрудников</h2>
-            <p className="text-muted-foreground">Раздел в разработке</p>
+            <div className="max-w-5xl mx-auto">
+              <h2 className="text-2xl font-bold mb-6">База знаний сотрудников</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="p-6 hover-scale cursor-pointer">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                      <Icon name="BookOpen" className="text-blue-500" size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold mb-2">Руководства по продуктам</h3>
+                      <p className="text-sm text-muted-foreground">Инструкции и описания всех продуктов компании</p>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card className="p-6 hover-scale cursor-pointer">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
+                      <Icon name="MessageSquare" className="text-green-500" size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold mb-2">Шаблоны ответов</h3>
+                      <p className="text-sm text-muted-foreground">Готовые ответы на частые вопросы</p>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card className="p-6 hover-scale cursor-pointer">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                      <Icon name="HelpCircle" className="text-purple-500" size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold mb-2">FAQ</h3>
+                      <p className="text-sm text-muted-foreground">Часто задаваемые вопросы и ответы</p>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card className="p-6 hover-scale cursor-pointer">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                      <Icon name="Video" className="text-orange-500" size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold mb-2">Видео-обучение</h3>
+                      <p className="text-sm text-muted-foreground">Обучающие материалы для новых сотрудников</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
           </div>
         );
 
       case 'monitoring':
         return (
           <div className="flex-1 p-6">
-            <h2 className="text-2xl font-bold mb-4">Мониторинг операторов</h2>
-            <p className="text-muted-foreground">Раздел в разработке</p>
+            <div className="max-w-6xl mx-auto">
+              <h2 className="text-2xl font-bold mb-6">Мониторинг операторов</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <Card className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                      <Icon name="UserCheck" className="text-green-500" size={20} />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{mockOperators.filter(o => o.status === 'online').length}</p>
+                      <p className="text-xs text-muted-foreground">На линии</p>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                      <Icon name="FileText" className="text-orange-500" size={20} />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{mockOperators.filter(o => o.status === 'jira').length}</p>
+                      <p className="text-xs text-muted-foreground">В Jira</p>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                      <Icon name="Coffee" className="text-yellow-500" size={20} />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{mockOperators.filter(o => o.status === 'break').length}</p>
+                      <p className="text-xs text-muted-foreground">На перерыве</p>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gray-500/10 flex items-center justify-center">
+                      <Icon name="UserX" className="text-gray-500" size={20} />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{mockOperators.filter(o => o.status === 'offline').length}</p>
+                      <p className="text-xs text-muted-foreground">Офлайн</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+              
+              <Card className="p-6">
+                <h3 className="font-bold mb-4">Список операторов</h3>
+                <div className="space-y-3">
+                  {mockOperators.map((operator) => (
+                    <div key={operator.id} className="flex items-center justify-between p-3 rounded-lg border">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-primary/20 text-primary">
+                              {operator.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-card ${statusConfig[operator.status].color}`} />
+                        </div>
+                        <div>
+                          <p className="font-semibold">{operator.name}</p>
+                          <p className="text-xs text-muted-foreground">{roleLabels[operator.role]}</p>
+                        </div>
+                      </div>
+                      <Badge variant="secondary">
+                        <Icon name={statusConfig[operator.status].icon} size={12} className="mr-1" />
+                        {statusConfig[operator.status].label}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
           </div>
         );
 
       case 'quality':
         return (
           <div className="flex-1 p-6">
-            <h2 className="text-2xl font-bold mb-4">Портал оценки качества (QC)</h2>
-            <p className="text-muted-foreground">Здесь ОКК могут оценивать работу операторов</p>
+            <div className="max-w-5xl mx-auto">
+              <h2 className="text-2xl font-bold mb-6">Портал оценки качества (QC)</h2>
+              
+              <Card className="p-6 mb-6">
+                <h3 className="font-bold mb-4">Критерии оценки</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-lg border">
+                    <Icon name="MessageSquare" className="text-blue-500 mb-2" size={24} />
+                    <h4 className="font-semibold mb-1">Качество ответов</h4>
+                    <p className="text-xs text-muted-foreground">Полнота, корректность и вежливость</p>
+                  </div>
+                  <div className="p-4 rounded-lg border">
+                    <Icon name="Clock" className="text-green-500 mb-2" size={24} />
+                    <h4 className="font-semibold mb-1">Скорость реакции</h4>
+                    <p className="text-xs text-muted-foreground">Время первого ответа и решения</p>
+                  </div>
+                  <div className="p-4 rounded-lg border">
+                    <Icon name="Smile" className="text-purple-500 mb-2" size={24} />
+                    <h4 className="font-semibold mb-1">Удовлетворенность</h4>
+                    <p className="text-xs text-muted-foreground">Оценка клиентов</p>
+                  </div>
+                </div>
+              </Card>
+              
+              <Card className="p-6">
+                <h3 className="font-bold mb-4">Последние оценки</h3>
+                <p className="text-sm text-muted-foreground">История оценок появится здесь после первой проверки качества</p>
+              </Card>
+            </div>
           </div>
         );
 
       case 'statuses':
         return (
           <div className="flex-1 p-6">
-            <h2 className="text-2xl font-bold mb-4">Управление статусами</h2>
-            <p className="text-muted-foreground">Раздел в разработке</p>
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-2xl font-bold mb-6">Управление статусами</h2>
+              
+              <Card className="p-6">
+                <h3 className="font-bold mb-4">Доступные статусы сотрудников</h3>
+                <div className="space-y-4">
+                  {Object.entries(statusConfig).map(([key, config]) => (
+                    <div key={key} className="flex items-center justify-between p-4 rounded-lg border">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full ${config.color}`} />
+                        <div>
+                          <p className="font-semibold">{config.label}</p>
+                          <p className="text-xs text-muted-foreground">Статус: {key}</p>
+                        </div>
+                      </div>
+                      <Icon name={config.icon} className="text-muted-foreground" size={20} />
+                    </div>
+                  ))}
+                </div>
+              </Card>
+              
+              <Card className="p-6 mt-6">
+                <h3 className="font-bold mb-2">Правила использования статусов</h3>
+                <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
+                  <li><strong>На линии</strong> — оператор готов принимать чаты</li>
+                  <li><strong>Обработка Jira</strong> — работа с задачами в Jira</li>
+                  <li><strong>Перерыв</strong> — временно недоступен</li>
+                  <li><strong>Не в сети</strong> — оператор офлайн</li>
+                </ul>
+              </Card>
+            </div>
           </div>
         );
 
       case 'analytics':
         return (
           <div className="flex-1 p-6">
-            <h2 className="text-2xl font-bold mb-4">Аналитика и отчёты</h2>
-            <p className="text-muted-foreground">Раздел в разработке</p>
+            <div className="max-w-6xl mx-auto">
+              <h2 className="text-2xl font-bold mb-6">Аналитика и отчёты</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold">Всего чатов</h3>
+                    <Icon name="MessageSquare" className="text-primary" size={20} />
+                  </div>
+                  <p className="text-3xl font-bold">{chats.length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">За сегодня</p>
+                </Card>
+                
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold">Активных</h3>
+                    <Icon name="Activity" className="text-green-500" size={20} />
+                  </div>
+                  <p className="text-3xl font-bold">{chats.filter(c => c.status === 'active').length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Сейчас в работе</p>
+                </Card>
+                
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold">Ожидают</h3>
+                    <Icon name="Clock" className="text-orange-500" size={20} />
+                  </div>
+                  <p className="text-3xl font-bold">{chats.filter(c => c.status === 'waiting').length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Требуют внимания</p>
+                </Card>
+              </div>
+              
+              <Card className="p-6">
+                <h3 className="font-bold mb-4">Детальная статистика</h3>
+                <p className="text-sm text-muted-foreground">Графики и детальная аналитика появятся после накопления данных</p>
+              </Card>
+            </div>
           </div>
         );
 

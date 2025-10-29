@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Icon from '@/components/ui/icon';
 import { authService } from '@/lib/auth';
+import { chatsService, Chat as ChatType, Message } from '@/lib/chats';
+import { useToast } from '@/hooks/use-toast';
 
 type UserRole = 'client' | 'operator' | 'okk' | 'admin';
 type UserStatus = 'online' | 'jira' | 'break' | 'offline';
@@ -101,8 +103,11 @@ const menuItems = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(mockChats[0]);
+  const [chats, setChats] = useState<ChatType[]>([]);
+  const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [activeSection, setActiveSection] = useState('chats');
   const [messageText, setMessageText] = useState('');
   const [userStatus, setUserStatus] = useState<UserStatus>('online');
@@ -119,6 +124,60 @@ const Dashboard = () => {
       setUserStatus(user.status);
     }
   }, []);
+
+  useEffect(() => {
+    if (activeSection === 'chats') {
+      loadChats();
+      const interval = setInterval(loadChats, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (selectedChatId) {
+      loadMessages();
+      const interval = setInterval(loadMessages, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [selectedChatId]);
+
+  const loadChats = async () => {
+    try {
+      const data = await chatsService.getChats();
+      setChats(data);
+    } catch (error) {
+      console.error('Failed to load chats:', error);
+    }
+  };
+
+  const loadMessages = async () => {
+    if (!selectedChatId) return;
+    try {
+      const msgs = await chatsService.getMessages(selectedChatId);
+      setMessages(msgs);
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !selectedChatId || !currentUser) return;
+    
+    const tempText = messageText;
+    setMessageText('');
+    
+    try {
+      await chatsService.sendMessage(selectedChatId, tempText, 'operator', parseInt(currentUser.id));
+      await loadMessages();
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить сообщение',
+        variant: 'destructive',
+      });
+      setMessageText(tempText);
+    }
+  };
 
   const handleLogout = async () => {
     await authService.logout();
@@ -160,39 +219,41 @@ const Dashboard = () => {
 
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
-                  {mockChats.map((chat) => (
+                  {chats.map((chat) => (
                     <Card
                       key={chat.id}
                       className={`p-3 cursor-pointer transition-all hover-scale ${
-                        selectedChat?.id === chat.id
+                        selectedChatId === chat.id
                           ? 'bg-accent border-primary'
                           : 'hover:bg-muted/50'
                       }`}
-                      onClick={() => setSelectedChat(chat)}
+                      onClick={() => setSelectedChatId(chat.id)}
                     >
                       <div className="flex items-start gap-3">
                         <Avatar className="h-10 w-10 mt-1">
                           <AvatarFallback className="bg-primary/20 text-primary font-semibold">
-                            {chat.clientName.split(' ').map(n => n[0]).join('')}
+                            {chat.client_name.split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <p className="font-semibold text-sm truncate">{chat.clientName}</p>
-                            <span className="text-xs text-muted-foreground">{chat.timestamp}</span>
+                            <p className="font-semibold text-sm truncate">{chat.client_name}</p>
+                            <span className="text-xs text-muted-foreground">
+                              {chat.last_message_time ? new Date(chat.last_message_time).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : ''}
+                            </span>
                           </div>
                           <p className="text-xs text-muted-foreground truncate mb-1">
-                            {chat.lastMessage}
+                            {chat.last_message || 'Нет сообщений'}
                           </p>
-                          {chat.assignedTo && (
+                          {chat.assigned_operator_name && (
                             <Badge variant="secondary" className="text-xs">
                               <Icon name="User" size={10} className="mr-1" />
-                              {chat.assignedTo}
+                              {chat.assigned_operator_name}
                             </Badge>
                           )}
                         </div>
-                        {chat.unread > 0 && (
-                          <Badge className="gradient-bg text-white">{chat.unread}</Badge>
+                        {(chat.unread_count || 0) > 0 && (
+                          <Badge className="gradient-bg text-white">{chat.unread_count}</Badge>
                         )}
                       </div>
                     </Card>
@@ -202,18 +263,18 @@ const Dashboard = () => {
             </aside>
 
             <main className="flex-1 flex flex-col bg-background">
-              {selectedChat ? (
+              {selectedChatId ? (
                 <>
                   <header className="p-4 border-b border-border bg-card">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
                           <AvatarFallback className="bg-primary/20 text-primary font-semibold">
-                            {selectedChat.clientName.split(' ').map(n => n[0]).join('')}
+                            {chats.find(c => c.id === selectedChatId)?.client_name.split(' ').map(n => n[0]).join('') || 'К'}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <h2 className="font-bold">{selectedChat.clientName}</h2>
+                          <h2 className="font-bold">{chats.find(c => c.id === selectedChatId)?.client_name}</h2>
                           <p className="text-xs text-muted-foreground">Онлайн</p>
                         </div>
                       </div>
@@ -233,21 +294,23 @@ const Dashboard = () => {
 
                   <ScrollArea className="flex-1 p-4">
                     <div className="space-y-4 max-w-4xl mx-auto">
-                      {mockMessages.map((msg) => (
+                      {messages.map((msg) => (
                         <div
                           key={msg.id}
-                          className={`flex ${msg.sender === 'operator' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+                          className={`flex ${msg.sender_type === 'operator' ? 'justify-end' : 'justify-start'} animate-fade-in`}
                         >
                           <div
                             className={`max-w-md p-3 rounded-2xl ${
-                              msg.sender === 'operator'
+                              msg.sender_type === 'operator'
                                 ? 'gradient-bg text-white'
+                                : msg.sender_type === 'system'
+                                ? 'bg-muted'
                                 : 'bg-card border border-border'
                             }`}
                           >
-                            <p className="text-sm mb-1">{msg.text}</p>
-                            <span className={`text-xs ${msg.sender === 'operator' ? 'text-white/70' : 'text-muted-foreground'}`}>
-                              {msg.time}
+                            <p className="text-sm mb-1">{msg.message_text}</p>
+                            <span className={`text-xs ${msg.sender_type === 'operator' ? 'text-white/70' : 'text-muted-foreground'}`}>
+                              {new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
                         </div>
@@ -264,9 +327,15 @@ const Dashboard = () => {
                         placeholder="Введите сообщение..."
                         value={messageText}
                         onChange={(e) => setMessageText(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                         className="flex-1"
                       />
-                      <Button className="gradient-bg text-white" size="icon">
+                      <Button 
+                        className="gradient-bg text-white" 
+                        size="icon"
+                        onClick={handleSendMessage}
+                        disabled={!messageText.trim()}
+                      >
                         <Icon name="Send" size={18} />
                       </Button>
                     </div>

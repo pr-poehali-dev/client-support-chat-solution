@@ -1,50 +1,80 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Icon from '@/components/ui/icon';
+import { chatsService, Message } from '@/lib/chats';
+import { useToast } from '@/hooks/use-toast';
 
 const ClientChat = () => {
-  const [messages, setMessages] = useState([
-    {
-      id: '1',
-      sender: 'system',
-      text: 'Здравствуйте! Вас приветствует служба поддержки. Опишите ваш вопрос, и мы свяжем вас с оператором.',
-      time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [messageText, setMessageText] = useState('');
   const [clientName, setClientName] = useState('');
   const [chatStarted, setChatStarted] = useState(false);
+  const [chatId, setChatId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleStartChat = () => {
-    if (!clientName.trim()) return;
-    setChatStarted(true);
-    setMessages([
-      ...messages,
-      {
-        id: Date.now().toString(),
-        sender: 'system',
-        text: `Добро пожаловать, ${clientName}! Ожидайте подключения оператора...`,
-        time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
+  useEffect(() => {
+    if (chatId) {
+      loadMessages();
+      const interval = setInterval(loadMessages, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [chatId]);
+
+  const loadMessages = async () => {
+    if (!chatId) return;
+    try {
+      const msgs = await chatsService.getMessages(chatId);
+      setMessages(msgs);
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+    }
   };
 
-  const handleSendMessage = () => {
-    if (!messageText.trim()) return;
+  const handleStartChat = async () => {
+    if (!clientName.trim()) return;
+    setLoading(true);
+
+    try {
+      const chat = await chatsService.createChat(clientName);
+      setChatId(chat.id);
+      setChatStarted(true);
+      toast({
+        title: 'Чат создан',
+        description: 'Ожидайте подключения оператора',
+      });
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось создать чат',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !chatId) return;
     
-    const newMessage = {
-      id: Date.now().toString(),
-      sender: 'client',
-      text: messageText,
-      time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-    };
-    
-    setMessages([...messages, newMessage]);
+    const tempText = messageText;
     setMessageText('');
+    
+    try {
+      await chatsService.sendMessage(chatId, tempText, 'client');
+      await loadMessages();
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить сообщение',
+        variant: 'destructive',
+      });
+      setMessageText(tempText);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -56,6 +86,10 @@ const ClientChat = () => {
         handleStartChat();
       }
     }
+  };
+
+  const formatTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -91,14 +125,24 @@ const ClientChat = () => {
                   onChange={(e) => setClientName(e.target.value)}
                   onKeyPress={handleKeyPress}
                   className="text-lg"
+                  disabled={loading}
                 />
                 <Button
                   onClick={handleStartChat}
                   className="w-full gradient-bg text-white"
-                  disabled={!clientName.trim()}
+                  disabled={!clientName.trim() || loading}
                 >
-                  <Icon name="Send" className="mr-2" size={18} />
-                  Начать чат
+                  {loading ? (
+                    <>
+                      <Icon name="Loader2" className="mr-2 animate-spin" size={18} />
+                      Создание чата...
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="Send" className="mr-2" size={18} />
+                      Начать чат
+                    </>
+                  )}
                 </Button>
               </div>
 
@@ -118,32 +162,32 @@ const ClientChat = () => {
                   <div
                     key={msg.id}
                     className={`flex ${
-                      msg.sender === 'client' ? 'justify-end' : 'justify-start'
+                      msg.sender_type === 'client' ? 'justify-end' : 'justify-start'
                     } animate-fade-in`}
                   >
-                    {msg.sender !== 'client' && (
+                    {msg.sender_type !== 'client' && (
                       <Avatar className="h-8 w-8 mr-2">
                         <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                          {msg.sender === 'system' ? '🤖' : 'ОП'}
+                          {msg.sender_type === 'system' ? '🤖' : msg.sender_name?.[0] || 'ОП'}
                         </AvatarFallback>
                       </Avatar>
                     )}
                     <div
                       className={`max-w-md p-3 rounded-2xl ${
-                        msg.sender === 'client'
+                        msg.sender_type === 'client'
                           ? 'gradient-bg text-white'
-                          : msg.sender === 'system'
+                          : msg.sender_type === 'system'
                           ? 'bg-muted'
                           : 'bg-card border border-border'
                       }`}
                     >
-                      <p className="text-sm mb-1">{msg.text}</p>
+                      <p className="text-sm mb-1">{msg.message_text}</p>
                       <span
                         className={`text-xs ${
-                          msg.sender === 'client' ? 'text-white/70' : 'text-muted-foreground'
+                          msg.sender_type === 'client' ? 'text-white/70' : 'text-muted-foreground'
                         }`}
                       >
-                        {msg.time}
+                        {formatTime(msg.created_at)}
                       </span>
                     </div>
                   </div>

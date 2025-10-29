@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import Icon from '@/components/ui/icon';
+import { authService } from '@/lib/auth';
 
 type UserRole = 'client' | 'operator' | 'okk' | 'admin';
 type UserStatus = 'online' | 'jira' | 'break' | 'offline';
@@ -100,14 +102,40 @@ const menuItems = [
 ];
 
 const Index = () => {
-  const [currentUser] = useState<User>(mockUser);
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(mockChats[0]);
   const [activeSection, setActiveSection] = useState('chats');
   const [messageText, setMessageText] = useState('');
 
-  const availableMenuItems = menuItems.filter(item => 
-    item.roles.includes(currentUser.role)
-  );
+  useEffect(() => {
+    const user = authService.getCurrentUser();
+    if (user) {
+      setCurrentUser({
+        id: user.id.toString(),
+        name: user.full_name,
+        role: user.role,
+        status: user.status,
+      });
+    }
+  }, []);
+
+  const handleLogout = async () => {
+    await authService.logout();
+    navigate('/login');
+  };
+
+  const handleNavigateToUsers = () => {
+    navigate('/users');
+  };
+
+  const availableMenuItems = currentUser 
+    ? menuItems.filter(item => item.roles.includes(currentUser.role))
+    : [];
+
+  if (!currentUser) {
+    return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
+  }
 
   return (
     <div className="flex h-screen bg-background text-foreground">
@@ -151,7 +179,13 @@ const Index = () => {
                 className={`w-full justify-start gap-3 ${
                   activeSection === item.id ? 'gradient-bg text-white' : ''
                 }`}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => {
+                  if (item.id === 'employees') {
+                    handleNavigateToUsers();
+                  } else {
+                    setActiveSection(item.id);
+                  }
+                }}
               >
                 <Icon name={item.icon} size={18} />
                 <span className="text-sm">{item.label}</span>
@@ -161,7 +195,7 @@ const Index = () => {
         </ScrollArea>
 
         <div className="p-4 border-t border-sidebar-border">
-          <Button variant="outline" className="w-full gap-2" size="sm">
+          <Button variant="outline" className="w-full gap-2" size="sm" onClick={handleLogout}>
             <Icon name="LogOut" size={16} />
             Выход
           </Button>

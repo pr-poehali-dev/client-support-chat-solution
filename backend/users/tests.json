@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "name": "Get users without auth",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401
+    },
+    {
+      "name": "Create user without auth",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "username": "newuser",
+        "password": "password123",
+        "full_name": "New User",
+        "role": "operator"
+      },
+      "expectedStatus": 401
+    }
+  ]
+}

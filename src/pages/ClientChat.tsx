@@ -18,6 +18,11 @@ const ClientChat = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('✅ ClientChat загружен - авторизация НЕ требуется');
+    console.log('📍 Текущий URL:', window.location.href);
+  }, []);
+
+  useEffect(() => {
     if (chatId) {
       loadMessages();
       const interval = setInterval(loadMessages, 3000);

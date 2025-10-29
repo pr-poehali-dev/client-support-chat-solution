@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,11 @@ const StaffLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    console.log('🔐 StaffLogin загружен - это страница авторизации для сотрудников');
+    console.log('📍 Текущий URL:', window.location.href);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

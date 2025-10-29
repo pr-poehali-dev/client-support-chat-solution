@@ -17,6 +17,8 @@ import Icon from '@/components/ui/icon';
 import { authService } from '@/lib/auth';
 import { chatsService, Chat as ChatType, Message } from '@/lib/chats';
 import { useToast } from '@/hooks/use-toast';
+import MyRatingsSection from '@/components/MyRatingsSection';
+import QCPortalSection from '@/components/QCPortalSection';
 
 type UserRole = 'client' | 'operator' | 'okk' | 'admin';
 type UserStatus = 'online' | 'jira' | 'break' | 'offline';
@@ -93,6 +95,7 @@ const roleLabels = {
 
 const menuItems = [
   { id: 'chats', label: 'Чаты с клиентами', icon: 'MessageSquare' as const, roles: ['operator', 'okk', 'admin'] },
+  { id: 'my-ratings', label: 'Мои оценки', icon: 'Award' as const, roles: ['operator', 'okk', 'admin'] },
   { id: 'knowledge', label: 'База знаний', icon: 'BookOpen' as const, roles: ['operator', 'okk', 'admin'] },
   { id: 'monitoring', label: 'Мониторинг операторов', icon: 'Monitor' as const, roles: ['okk', 'admin'] },
   { id: 'quality', label: 'Портал QC', icon: 'Star' as const, roles: ['okk', 'admin'] },
@@ -328,15 +331,59 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Icon name="Phone" size={16} />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Icon name="Video" size={16} />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Icon name="MoreVertical" size={16} />
-                        </Button>
+                        {chats.find(c => c.id === selectedChatId)?.status !== 'closed' && (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={async () => {
+                                try {
+                                  await chatsService.closeChat(selectedChatId);
+                                  toast({ title: 'Чат закрыт' });
+                                  loadChats();
+                                } catch (error) {
+                                  toast({ title: 'Ошибка', variant: 'destructive' });
+                                }
+                              }}
+                            >
+                              <Icon name="CheckCircle" size={16} className="mr-1" />
+                              Закрыть
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                const operatorId = prompt('ID оператора для эскалации (или пусто для отмены назначения):');
+                                if (operatorId !== null) {
+                                  chatsService.escalateChat(selectedChatId, operatorId ? parseInt(operatorId) : undefined)
+                                    .then(() => {
+                                      toast({ title: 'Чат переназначен' });
+                                      loadChats();
+                                    })
+                                    .catch(() => toast({ title: 'Ошибка', variant: 'destructive' }));
+                                }
+                              }}
+                            >
+                              <Icon name="UserPlus" size={16} className="mr-1" />
+                              Эскалация
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                const note = prompt('Комментарий о клиенте:');
+                                if (note && currentUser) {
+                                  chatsService.addNote(selectedChatId, parseInt(currentUser.id), note)
+                                    .then(() => toast({ title: 'Комментарий добавлен' }))
+                                    .catch(() => toast({ title: 'Ошибка', variant: 'destructive' }));
+                                }
+                              }}
+                            >
+                              <Icon name="FileText" size={16} className="mr-1" />
+                              Комментарий
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </header>
@@ -441,6 +488,17 @@ const Dashboard = () => {
                 </div>
               </ScrollArea>
             </aside>
+          </div>
+        );
+
+      case 'my-ratings':
+        return (
+          <div className="flex-1 p-6">
+            <div className="max-w-5xl mx-auto">
+              <h2 className="text-2xl font-bold mb-6">Мои оценки QC</h2>
+              
+              <MyRatingsSection currentUserId={currentUser?.id} />
+            </div>
           </div>
         );
 
@@ -592,33 +650,10 @@ const Dashboard = () => {
       case 'quality':
         return (
           <div className="flex-1 p-6">
-            <div className="max-w-5xl mx-auto">
+            <div className="max-w-7xl mx-auto">
               <h2 className="text-2xl font-bold mb-6">Портал оценки качества (QC)</h2>
               
-              <Card className="p-6 mb-6">
-                <h3 className="font-bold mb-4">Критерии оценки</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 rounded-lg border">
-                    <Icon name="MessageSquare" className="text-blue-500 mb-2" size={24} />
-                    <h4 className="font-semibold mb-1">Качество ответов</h4>
-                    <p className="text-xs text-muted-foreground">Полнота, корректность и вежливость</p>
-                  </div>
-                  <div className="p-4 rounded-lg border">
-                    <Icon name="Clock" className="text-green-500 mb-2" size={24} />
-                    <h4 className="font-semibold mb-1">Скорость реакции</h4>
-                    <p className="text-xs text-muted-foreground">Время первого ответа и решения</p>
-                  </div>
-                  <div className="p-4 rounded-lg border">
-                    <Icon name="Smile" className="text-purple-500 mb-2" size={24} />
-                    <h4 className="font-semibold mb-1">Удовлетворенность</h4>
-                    <p className="text-xs text-muted-foreground">Оценка клиентов</p>
-                  </div>
-                </div>
-              </Card>
-              
-              <Card className="p-6">
-                <h3 className="font-bold mb-4">Последние оценки</h3>
-                <p className="text-sm text-muted-foreground">История оценок появится здесь после первой проверки качества</p>
+              <QCPortalSection currentUserId={currentUser ? parseInt(currentUser.id) : undefined} />
               </Card>
             </div>
           </div>

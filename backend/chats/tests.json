@@ -17,7 +17,8 @@
       "expectedStatus": 201,
       "expectedBody": {
         "id": "number",
-        "client_name": "string"
+        "client_name": "string",
+        "status": "string"
       },
       "bodyMatcher": "partial"
     }

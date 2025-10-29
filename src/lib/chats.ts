@@ -101,4 +101,115 @@ export const chatsService = {
 
     return response.json();
   },
+
+  async closeChat(chatId: number): Promise<void> {
+    const response = await fetch(CHATS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'close_chat',
+        chat_id: chatId,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to close chat');
+    }
+  },
+
+  async escalateChat(chatId: number, toOperatorId?: number): Promise<void> {
+    const response = await fetch(CHATS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'escalate_chat',
+        chat_id: chatId,
+        to_operator_id: toOperatorId,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to escalate chat');
+    }
+  },
+
+  async addNote(chatId: number, operatorId: number, noteText: string): Promise<any> {
+    const response = await fetch(CHATS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'add_note',
+        chat_id: chatId,
+        operator_id: operatorId,
+        note_text: noteText,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to add note');
+    }
+
+    return response.json();
+  },
+
+  async getNotes(chatId: number): Promise<any[]> {
+    const response = await fetch(CHATS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'get_notes',
+        chat_id: chatId,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch notes');
+    }
+
+    return response.json();
+  },
+
+  async addQCRating(
+    chatId: number,
+    operatorId: number,
+    qcUserId: number,
+    score: number,
+    comment?: string
+  ): Promise<any> {
+    const response = await fetch(CHATS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'add_qc_rating',
+        chat_id: chatId,
+        operator_id: operatorId,
+        qc_user_id: qcUserId,
+        score,
+        comment,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to add QC rating');
+    }
+
+    return response.json();
+  },
+
+  async getQCRatings(operatorId?: number): Promise<any[]> {
+    const response = await fetch(CHATS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'get_qc_ratings',
+        operator_id: operatorId,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch QC ratings');
+    }
+
+    return response.json();
+  },
 };

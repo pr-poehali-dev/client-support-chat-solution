@@ -23,7 +23,7 @@ const Login = () => {
       await authService.login(username, password);
       toast({
         title: 'Успешный вход',
-        description: 'Добро пожаловать в SupportHub!',
+        description: 'Добро пожаловать в Siti-Contact!',
       });
       navigate('/');
     } catch (error) {
@@ -44,8 +44,8 @@ const Login = () => {
           <div className="w-16 h-16 rounded-2xl gradient-bg mx-auto flex items-center justify-center mb-4">
             <Icon name="Headphones" className="text-white" size={32} />
           </div>
-          <h1 className="text-3xl font-bold">SupportHub</h1>
-          <p className="text-muted-foreground">Платформа клиентской поддержки</p>
+          <h1 className="text-3xl font-bold">Siti-Contact</h1>
+          <p className="text-muted-foreground">Онлайн чат для поддержки клиентов</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">

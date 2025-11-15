@@ -45,7 +45,7 @@ const ClientChat = () => {
     setLoading(true);
 
     try {
-      const chat = await chatsService.createChat(clientName);
+      const chat = await chatsService.createChat(clientName, '');
       setChatId(chat.id);
       setChatStarted(true);
       toast({
@@ -106,8 +106,8 @@ const ClientChat = () => {
               <Icon name="Headphones" className="text-white" size={24} />
             </div>
             <div>
-              <h1 className="font-bold text-xl">Поддержка SupportHub</h1>
-              <p className="text-sm text-muted-foreground">Мы всегда на связи</p>
+              <h1 className="font-bold text-xl">Siti-Contact</h1>
+              <p className="text-sm text-muted-foreground">Онлайн поддержка клиентов</p>
             </div>
           </div>
         </div>

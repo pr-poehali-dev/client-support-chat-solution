@@ -30,55 +30,6 @@ interface User {
   status: UserStatus;
 }
 
-interface Chat {
-  id: string;
-  clientName: string;
-  lastMessage: string;
-  timestamp: string;
-  unread: number;
-  assignedTo?: string;
-}
-
-const mockChats: Chat[] = [
-  {
-    id: '1',
-    clientName: 'Петр Смирнов',
-    lastMessage: 'Здравствуйте, у меня вопрос по заказу',
-    timestamp: '14:32',
-    unread: 2,
-    assignedTo: 'Анна Иванова',
-  },
-  {
-    id: '2',
-    clientName: 'Мария Кузнецова',
-    lastMessage: 'Спасибо за помощь!',
-    timestamp: '13:15',
-    unread: 0,
-    assignedTo: 'Анна Иванова',
-  },
-  {
-    id: '3',
-    clientName: 'Алексей Попов',
-    lastMessage: 'Когда будет доставка?',
-    timestamp: '12:45',
-    unread: 1,
-  },
-];
-
-const mockOperators: User[] = [
-  { id: '1', name: 'Анна Иванова', role: 'operator', status: 'online' },
-  { id: '2', name: 'Дмитрий Волков', role: 'operator', status: 'online' },
-  { id: '3', name: 'Елена Соколова', role: 'okk', status: 'jira' },
-  { id: '4', name: 'Игорь Морозов', role: 'operator', status: 'break' },
-  { id: '5', name: 'Ольга Новикова', role: 'operator', status: 'offline' },
-];
-
-const mockMessages = [
-  { id: '1', sender: 'client', text: 'Здравствуйте, у меня вопрос по заказу', time: '14:30' },
-  { id: '2', sender: 'operator', text: 'Здравствуйте! Чем могу помочь?', time: '14:31' },
-  { id: '3', sender: 'client', text: 'Когда придет моя посылка?', time: '14:32' },
-];
-
 const statusConfig = {
   online: { label: 'На линии', color: 'bg-green-500', icon: 'CircleCheck' as const },
   jira: { label: 'Обработка Jira', color: 'bg-orange-500', icon: 'FileText' as const },
@@ -654,7 +605,6 @@ const Dashboard = () => {
               <h2 className="text-2xl font-bold mb-6">Портал оценки качества (QC)</h2>
               
               <QCPortalSection currentUserId={currentUser ? parseInt(currentUser.id) : undefined} />
-              </Card>
             </div>
           </div>
         );

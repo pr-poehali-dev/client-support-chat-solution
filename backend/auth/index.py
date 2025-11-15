@@ -45,6 +45,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return handle_verify(event, conn)
             elif action == 'update_status':
                 return handle_update_status(event, conn)
+            elif action == 'get_operators':
+                return handle_get_operators(conn)
         
         elif method == 'GET':
             return handle_get_current_user(event, conn)
@@ -309,5 +311,25 @@ def handle_get_current_user(event: Dict[str, Any], conn) -> Dict[str, Any]:
             'status': result['status'],
             'department': result['department']
         }),
+        'isBase64Encoded': False
+    }
+
+
+def handle_get_operators(conn) -> Dict[str, Any]:
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT id, full_name, role, status, department
+        FROM users
+        WHERE is_active = true AND role IN ('operator', 'okk', 'admin')
+        ORDER BY full_name
+        """
+    )
+    operators = cursor.fetchall()
+    
+    return {
+        'statusCode': 200,
+        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps([dict(op) for op in operators]),
         'isBase64Encoded': False
     }

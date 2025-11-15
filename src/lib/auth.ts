@@ -107,6 +107,22 @@ export const authService = {
       localStorage.setItem('user', JSON.stringify(user));
     }
   },
+
+  async getOperators(): Promise<User[]> {
+    const response = await fetch(AUTH_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action: 'get_operators' }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch operators');
+    }
+
+    return response.json();
+  },
 };
 
 export const usersService = {

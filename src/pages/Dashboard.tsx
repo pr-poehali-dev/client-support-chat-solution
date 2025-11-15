@@ -66,6 +66,7 @@ const Dashboard = () => {
   const [messageText, setMessageText] = useState('');
   const [userStatus, setUserStatus] = useState<UserStatus>('online');
   const [chatFilter, setChatFilter] = useState<'all' | 'waiting' | 'active' | 'closed'>('all');
+  const [operators, setOperators] = useState<User[]>([]);
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -78,7 +79,22 @@ const Dashboard = () => {
       });
       setUserStatus(user.status);
     }
+    loadOperators();
   }, []);
+
+  const loadOperators = async () => {
+    try {
+      const ops = await authService.getOperators();
+      setOperators(ops.map(op => ({
+        id: op.id.toString(),
+        name: op.full_name,
+        role: op.role,
+        status: op.status,
+      })));
+    } catch (error) {
+      console.error('Failed to load operators:', error);
+    }
+  };
 
   useEffect(() => {
     if (activeSection === 'chats') {
@@ -407,7 +423,7 @@ const Dashboard = () => {
               <h3 className="font-bold mb-4">Операторы онлайн</h3>
               <ScrollArea className="h-[calc(100vh-8rem)]">
                 <div className="space-y-2">
-                  {mockOperators.map((operator) => (
+                  {operators.map((operator) => (
                     <Card key={operator.id} className="p-3 hover-scale cursor-pointer">
                       <div className="flex items-center gap-3">
                         <div className="relative">
